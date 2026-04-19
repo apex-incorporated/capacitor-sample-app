@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.env.local
+.env*.local
+
+# Native platform folders — generated on first `npx cap add`.
+# These are huge and specific to each developer's machine; the sample
+# README instructs users to run `npm run ios:add` / `npm run android:add`
+# themselves so we don't ship stale Xcode project metadata.
+ios/
+android/
+
+# Build caches
+.vite/
+.turbo/
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Optional auth
+.npmrc
