@@ -1,164 +1,138 @@
-import { StatPill } from "@/components/StatPill";
-import { EventLog } from "@/components/EventLog";
-import { useQueueStatus } from "@/hooks/useQueueStatus";
-import { useVisitorId } from "@/hooks/useVisitorId";
-import { Apex, logError, logEvent } from "@/apex";
-import { useState } from "react";
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ChevronRight } from "lucide-react";
+import { Header } from "@/components/layout/Header";
+import { ProductCard } from "@/components/product/ProductCard";
+import { ProductImage } from "@/components/product/ProductImage";
+import { listProducts, CATEGORIES } from "@/lib/catalog";
+import { track } from "@/lib/events";
+import { listContainer, fadeUp, lightHaptic } from "@/brand/motion";
 
-/**
- * The Home screen demonstrates the three most common plugin calls:
- *
- *   - Apex.track(...)   — enqueue an arbitrary event
- *   - Apex.startSession / endSession — force the session boundary
- *   - Apex.flushQueue   — flush the offline queue on demand
- *
- * The stats at the top (visitor ID, queue size) update via polling
- * hooks so the numbers always reflect the SDK's real state.
- */
 export function HomeScreen() {
-  const { status: queue, refresh: refreshQueue } = useQueueStatus();
-  const { visitorId } = useVisitorId();
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const featured = listProducts({ featured: true });
+  const newArrivals = listProducts().slice(0, 6);
 
-  const handleTrack = async (type: string, data?: Record<string, unknown>) => {
-    setBusy(true);
-    try {
-      await Apex.track({ type, data });
-      logEvent(`track(${type})`, data);
-      await refreshQueue();
-    } catch (err) {
-      logError(`track(${type}) failed`, { error: String(err) });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleStartSession = async () => {
-    const res = await Apex.startSession();
-    setSessionId(res.sessionId);
-    logEvent("Session started", { sessionId: res.sessionId });
-  };
-
-  const handleEndSession = async () => {
-    await Apex.endSession();
-    setSessionId(null);
-    logEvent("Session ended");
-  };
-
-  const handleFlush = async () => {
-    const res = await Apex.flushQueue();
-    logEvent("Queue flushed", { flushed: res.flushed, remaining: res.remaining });
-    await refreshQueue();
-  };
+  useEffect(() => {
+    void track("page_view", { screen: "home" });
+  }, []);
 
   return (
-    <div className="space-y-4">
-      <section>
-        <h1 className="text-2xl font-black tracking-tight">Home</h1>
-        <p className="text-sm text-apex-muted">
-          Track events, inspect the queue, and stream the results into your
-          Apex debug console.
-        </p>
-      </section>
+    <>
+      <Header large title="Apex Outfitters" subtitle="Built for the long expedition." />
 
-      <section className="flex gap-3">
-        <StatPill
-          label="Visitor"
-          value={visitorId ? visitorId.slice(0, 8) : "…"}
-          sub={visitorId ? "persisted locally" : "loading"}
-        />
-        <StatPill
-          label="Queue"
-          value={queue ? String(queue.count) : "…"}
-          sub={
-            queue?.oldestEventAt
-              ? `oldest ${relative(queue.oldestEventAt)}`
-              : "empty"
-          }
-        />
-      </section>
-
-      <section className="apex-card space-y-3">
-        <div className="apex-label">Track a custom event</div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            className="apex-btn-primary"
-            disabled={busy}
-            onClick={() => handleTrack("custom", { source: "home_button" })}
-          >
-            Generic custom
-          </button>
-          <button
-            className="apex-btn-ghost"
-            disabled={busy}
-            onClick={() => handleTrack("feature_used", { feature: "home" })}
-          >
-            feature_used
-          </button>
-          <button
-            className="apex-btn-ghost"
-            disabled={busy}
-            onClick={() => handleTrack("tutorial_completed")}
-          >
-            tutorial_completed
-          </button>
-          <button
-            className="apex-btn-ghost"
-            disabled={busy}
-            onClick={() => handleTrack("content_view", { contentId: "home-001" })}
-          >
-            content_view
-          </button>
-        </div>
-      </section>
-
-      <section className="apex-card space-y-3">
-        <div className="apex-label">Session control</div>
-        <p className="text-[11px] text-apex-muted">
-          Sessions auto-start on app open and auto-end after 30 min of
-          inactivity. These buttons let you force the boundaries for
-          testing.
-        </p>
-        <div className="flex gap-2">
-          <button className="apex-btn-primary" onClick={handleStartSession}>
-            Start session
-          </button>
-          <button className="apex-btn-ghost" onClick={handleEndSession}>
-            End session
-          </button>
-        </div>
-        {sessionId && (
-          <div className="font-mono text-[11px] text-apex-muted">
-            current → {sessionId}
-          </div>
+      <motion.div
+        variants={listContainer}
+        initial="hidden"
+        animate="show"
+        className="space-y-8"
+      >
+        {/* ── Hero / lead featured product ─────────────────────────── */}
+        {featured[0] && (
+          <motion.div variants={fadeUp} className="px-5">
+            <Link
+              to={`/product/${featured[0].slug}`}
+              onClick={() => void lightHaptic()}
+              className="block overflow-hidden rounded-3xl bg-surface-sunken"
+            >
+              <div className="relative aspect-[16/10]">
+                <ProductImage
+                  src={featured[0].imageUrl}
+                  alt={featured[0].name}
+                  productName={featured[0].name}
+                  className="absolute inset-0 size-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider opacity-90">
+                    Featured · {featured[0].category}
+                  </p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+                    {featured[0].name}
+                  </h2>
+                  <p className="mt-1 line-clamp-2 max-w-prose text-sm text-white/85">
+                    {featured[0].description}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
         )}
-      </section>
 
-      <section className="apex-card space-y-3">
-        <div className="apex-label">Offline queue</div>
-        <p className="text-[11px] text-apex-muted">
-          When the device is offline, events pile up locally. On next
-          connection they drain automatically; the button forces an
-          immediate drain.
-        </p>
-        <button className="apex-btn-ghost w-full" onClick={handleFlush}>
-          Flush queue now
-        </button>
-      </section>
+        {/* ── Featured collection rail ────────────────────────────── */}
+        <motion.section variants={fadeUp} className="space-y-3">
+          <div className="flex items-center justify-between px-5">
+            <h3 className="text-base font-semibold tracking-tight text-fg">
+              The essentials
+            </h3>
+            <Link
+              to="/shop"
+              onClick={() => void lightHaptic()}
+              className="flex items-center gap-0.5 text-xs font-medium text-primary"
+            >
+              See all <ChevronRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto px-5 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {featured.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                className="w-44 shrink-0"
+              />
+            ))}
+          </div>
+        </motion.section>
 
-      <section className="space-y-1.5">
-        <div className="apex-label px-1">Event log</div>
-        <EventLog />
-      </section>
-    </div>
+        {/* ── Category grid ───────────────────────────────────────── */}
+        <motion.section variants={fadeUp} className="space-y-3">
+          <h3 className="px-5 text-base font-semibold tracking-tight text-fg">
+            Shop by category
+          </h3>
+          <div className="grid grid-cols-2 gap-3 px-5">
+            {CATEGORIES.slice(0, 4).map((cat) => {
+              const products = listProducts({ category: cat.key });
+              const hero = products[0];
+              return (
+                <Link
+                  key={cat.key}
+                  to={`/shop?category=${cat.key}`}
+                  onClick={() => void lightHaptic()}
+                  className="relative aspect-square overflow-hidden rounded-2xl bg-surface-sunken"
+                >
+                  {hero && (
+                    <ProductImage
+                      src={hero.imageUrl}
+                      alt=""
+                      productName={cat.label}
+                      className="absolute inset-0 size-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <p className="text-base font-semibold text-white">{cat.label}</p>
+                    <p className="text-[10px] text-white/75">
+                      {products.length} {products.length === 1 ? "piece" : "pieces"}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </motion.section>
+
+        {/* ── New arrivals grid ───────────────────────────────────── */}
+        <motion.section variants={fadeUp} className="space-y-3">
+          <h3 className="px-5 text-base font-semibold tracking-tight text-fg">
+            New arrivals
+          </h3>
+          <div className="grid grid-cols-2 gap-3 px-5">
+            {newArrivals.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </motion.section>
+      </motion.div>
+    </>
   );
-}
-
-function relative(iso: string): string {
-  const seconds = Math.round((Date.now() - Date.parse(iso)) / 1000);
-  if (!Number.isFinite(seconds) || seconds < 0) return "just now";
-  if (seconds < 60) return `${seconds}s ago`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
-  return `${Math.round(seconds / 3600)}h ago`;
 }

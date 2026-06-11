@@ -8,8 +8,8 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * http://localhost:3000.
  */
 const config: CapacitorConfig = {
-  appId: "inc.apex.sample",
-  appName: "Apex Sample",
+  appId: "inc.apex.outfitters",
+  appName: "Apex Outfitters",
   webDir: "dist",
   server: {
     // During `npm run dev`, set `APEX_DEV_URL` in `.env.local` to your
@@ -23,6 +23,16 @@ const config: CapacitorConfig = {
     // Must match your Apple bundle ID and Team ID when you build for real
     // devices. `npm run ios:open` opens Xcode where you configure these.
     contentInset: "always",
+    // Disable the WKWebView's outer UIScrollView. Without this, iOS keeps
+    // a scroll-pan gesture recognizer attached to the WebView even though
+    // body has `overflow: hidden` and we never actually scroll at the
+    // viewport level (the inner `<main>` is the only scroll container).
+    // That recognizer competes with every touch, and when iOS can't
+    // resolve "scroll vs tap" in time it logs `Gesture: System gesture
+    // gate timed out` and silently drops the touch — which manifests as
+    // tab taps that have to be repeated 2-3 times. Disabling the outer
+    // scroll removes the recognizer competition entirely.
+    scrollEnabled: false,
   },
   android: {
     // Android App Links require the signing cert SHA-256 and a matching

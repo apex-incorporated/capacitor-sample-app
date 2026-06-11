@@ -2,32 +2,175 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Brand fonts ─────────────────────────────────────────────────── */
+/* Inter for UI, JetBrains Mono for the Apex Live event panel + token
+   previews. Loaded from Google Fonts; we accept the FOUT in exchange
+   for not bundling the full subset. iOS picks up SF Pro fallback in
+   the meantime, which is a near-Inter feel. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+/* ─── Design tokens ──────────────────────────────────────────────── */
+/*
+ * Semantic tokens — components read these via Tailwind's
+ * `bg-background`, `text-foreground`, etc. (configured in
+ * tailwind.config.ts). Light + dark mode are designed in parallel
+ * from the same OKLCH ramps in src/brand/colors.ts.
+ */
 @layer base {
+  :root {
+    /* Surfaces */
+    --color-bg: oklch(0.98 0 0); /* near-white app background */
+    --color-surface: oklch(1.00 0 0); /* cards, sheets */
+    --color-surface-elevated: oklch(1.00 0 0); /* modals, dropdowns */
+    --color-surface-sunken: oklch(0.96 0 0); /* tab bar fills, inputs */
+
+    /* Text */
+    --color-fg: oklch(0.18 0 0); /* primary text */
+    --color-fg-muted: oklch(0.42 0 0); /* secondary text */
+    --color-fg-subtle: oklch(0.55 0 0); /* hint text, timestamps */
+    --color-fg-on-accent: oklch(1.00 0 0); /* text over primary CTAs */
+
+    /* Borders */
+    --color-border: oklch(0.92 0 0);
+    --color-border-subtle: oklch(0.96 0 0);
+    --color-border-strong: oklch(0.86 0 0);
+
+    /* Brand — anchored to the canonical Apex green gradient in app/public/brand/logo.svg */
+    --color-primary: #009E5F;
+    --color-primary-hover: #00874f;
+    --color-primary-active: #00703f;
+    --color-primary-soft: #e8f7ef;
+
+    /* Functional */
+    --color-success: #009E5F;
+    --color-warning: oklch(0.78 0.16 85);
+    --color-danger: oklch(0.62 0.22 25);
+    --color-info: oklch(0.62 0.18 240);
+  }
+
+  .dark {
+    /* Mirror palette tuned for dark mode. Anchored to #0A0F14 (the
+       canonical Apex brand base) for the app background. */
+    --color-bg: #0A0F14;
+    --color-surface: #11161c;
+    --color-surface-elevated: #161c24;
+    --color-surface-sunken: #080c11;
+
+    --color-fg: oklch(0.96 0 0);
+    --color-fg-muted: oklch(0.72 0 0);
+    --color-fg-subtle: oklch(0.55 0 0);
+    --color-fg-on-accent: #0A0F14;
+
+    --color-border: oklch(0.22 0 0);
+    --color-border-subtle: oklch(0.16 0 0);
+    --color-border-strong: oklch(0.32 0 0);
+
+    --color-primary: #4EC983;
+    --color-primary-hover: #6dd99a;
+    --color-primary-active: #009E5F;
+    --color-primary-soft: rgba(78, 201, 131, 0.14);
+
+    --color-success: #4EC983;
+    --color-warning: oklch(0.80 0.16 85);
+    --color-danger: oklch(0.65 0.22 25);
+    --color-info: oklch(0.65 0.18 240);
+  }
+
   html,
   body,
   #root {
-    min-height: 100vh;
+    height: 100%;
+    min-height: 100%;
+    /* iOS WebView locks here. The actual scroll container is <main>
+       inside <Layout>. Without this, body rubber-bands and the
+       fixed-position TabBar appears to drag along with it. */
+    overflow: hidden;
+    overscroll-behavior: none;
+    /* Disable iOS WKWebView gesture recognizers that compete with
+       page taps and cause `Gesture: System gesture gate timed out`
+       drops. `-webkit-touch-callout: none` kills the long-press
+       link/image preview recognizer; `-webkit-user-select: none`
+       kills the long-press text-selection recognizer. Both wait
+       ~500ms before resolving, and during that window iOS gates
+       every touch — which is exactly the symptom the sample app
+       was hitting (taps requiring 2-5 retries to register). */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Inputs, textareas, and explicitly-marked text regions still
+     need selection to work — re-enable. */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .selectable {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  html {
+    /* Honor system preference until in-app toggle override. */
+    color-scheme: light dark;
   }
   body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family:
+      "Inter",
+      "SF Pro Text",
+      -apple-system,
+      BlinkMacSystemFont,
+      system-ui,
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* No safe-area padding here — Layout's <main> owns the top
+       inset, TabBar owns the bottom inset. Applying it on body too
+       double-counts and shoves headers below the visible viewport. */
+  }
+
+  /* Native iOS look on form fields. */
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+
+  /* Better tap targets — iOS Safari 300ms delay killer. Also covers
+     <a> (NavLinks, in-page links) since the WebKit tap delay applies
+     to them as much as buttons. */
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
+/* ─── Reusable component classes ─────────────────────────────────── */
+/*
+ * Kept small. Most styling should live in the React primitives in
+ * src/components/ui/. These classes are escape hatches for legacy
+ * screens that haven't migrated yet.
+ */
 @layer components {
+  /* Backwards-compat shims so legacy screens (HomeScreen, etc.) keep
+     rendering until they're rewritten in later phases. New code MUST
+     use the design primitives from src/components/ui/. */
   .apex-btn {
     @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors;
   }
   .apex-btn-primary {
-    @apply apex-btn bg-apex-amber text-apex-ink hover:bg-amber-400 active:bg-amber-500;
+    @apply apex-btn bg-primary text-on-accent hover:bg-primary-hover active:bg-primary-active;
   }
   .apex-btn-ghost {
-    @apply apex-btn border border-black/10 bg-white hover:bg-black/5 active:bg-black/10;
+    @apply apex-btn border border-border bg-surface hover:bg-surface-sunken;
   }
   .apex-card {
-    @apply rounded-2xl border border-black/10 bg-white p-4 shadow-sm;
+    @apply rounded-2xl border border-border bg-surface p-4;
   }
   .apex-label {
-    @apply text-[11px] font-semibold uppercase tracking-wider text-apex-muted;
+    @apply text-[11px] font-semibold uppercase tracking-wider text-fg-muted;
   }
 }

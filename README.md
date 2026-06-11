@@ -1,153 +1,150 @@
-# Apex Capacitor sample app
+# Apex Outfitters
 
-A minimal Capacitor + React + Vite app that exercises every public API in [`@apex-inc/capacitor-plugin`](https://github.com/apex-incorporated/capacitor-plugin). Clone it, point it at your Apex project, and see attribution, sessions, deep linking, SKAN, and the offline queue working end-to-end in the iOS Simulator or an Android emulator within five minutes.
+A polished, open-source reference app for [Apex](https://apex.inc) — a fictional Apex-branded e-commerce store that demonstrates a real Apex integration end-to-end on iOS.
 
-**Three screens:**
+> **What this is**: a first-class mobile app you can clone, point at your Apex workspace, and use to test every feature Apex offers. Built with Capacitor 6 + React 18 + Vite + Tailwind, with Apex's official Capacitor plugin (`@apex-inc/capacitor-plugin@^2.1.0`).
+>
+> **What this isn't**: the future Apex companion app (separate product). This app stays open-source and TestFlight-only; it exists so adopters can dogfood Apex in a real-feeling app, and so we (the Apex team) can dogfood ourselves.
 
-| Screen | Demonstrates |
+## What you'll experience
+
+| Feature | Where it lives in the app |
 |---|---|
-| **Home** | `Apex.track()` for custom events · manual session boundaries · live offline-queue inspector · `Apex.flushQueue()` |
-| **Products** → detail | `content_view` events · `in_app_purchase` with the typed `purchase` payload · SKAdNetwork conversion-value updates · React Router integration with the plugin's `deepLink` listener |
-| **Settings** | Visitor-ID override · iOS ATT prompt · IDFA / GAID inspection · Android Install Referrer · device info · test-mode toggle |
-
-You also get a persistent **Event Log** on Home that tails every Apex call the app made — useful when you don't want to keep Safari Web Inspector open during a demo.
+| Native events (`app_open`, `page_view`, `purchase`, ...) | Every tap fires the right Apex event |
+| Apex Live event panel | "Apex Live" tab — streams every event with a "What this means" explainer |
+| Partner referral attribution end-to-end | Tap an affiliate link → install → sign up → purchase → see commission credit |
+| Belief graph + Predictive LTV | Apex Live → user intelligence panel |
+| Mobile experiments (`Apex.getVariant`) | Paywall layout A/B test on the subscription tier offer screen |
+| Subscriptions (`subscription_event`) | Apex Outfitters Plus tier with trial → conversion flow |
+| Smart Banner + cross-platform identity | Web companion at `apex-outfitters.example.com` |
+| QR-driven deep links | Settings → "Test a deep link via QR" |
+| Apple Pay (sandbox) | Checkout → Pay with Apple Pay (requires your Apple Dev portal setup) |
 
 ## Quick start
-
-Requires Node 18+. No database, no backend, no Apple/Google developer accounts needed for the first ride.
 
 ```bash
 git clone https://github.com/apex-incorporated/capacitor-sample-app
 cd capacitor-sample-app
 npm install
-cp .env.example .env.local
 ```
 
-Edit `.env.local` with your Apex project key (grab it from `/dashboard/settings → Snippet` in your Apex dashboard) and the API URL your dashboard runs on:
-
-```bash
-VITE_APEX_PROJECT_KEY=your-project-key-here
-VITE_APEX_API_URL=http://localhost:3000
-```
-
-Then:
+### Run in browser (web preview)
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:5173` in a browser and click around. The Event Log on Home will show your calls firing. Events land in your Apex debug console at `/dashboard/debug/events` in real time.
+Open `http://localhost:5173`. You'll see the splash, then the home screen. Browser preview is great for fast UI iteration but doesn't exercise the iOS-specific features (push notifications, ATT prompt, SKAN, Universal Links).
 
-## Running in iOS Simulator
+### Run on a real iPhone (full experience)
 
-Requires Xcode 15+ and macOS.
-
-```bash
-npm run ios:add     # one-time: creates ios/ folder
-npm run ios:open    # opens Xcode with the project
-```
-
-Then hit **Run** in Xcode. The Simulator boots, the sample app opens, and events flow from the iOS WebView to your dashboard.
-
-### Testing deep links from the terminal
+Required: Xcode 15+, CocoaPods (`brew install cocoapods`), a physical iPhone, an Apple Developer team (free or paid).
 
 ```bash
-xcrun simctl openurl booted "https://yourproject.links.apex.inc/summer-launch"
+npm run ios:add        # one-time: generates ios/ folder + brand icon
+npm run ios:open       # builds web, syncs, refreshes brand icon, opens Xcode
 ```
 
-You'll see `Deep link received` in the Event Log and the app navigates to the corresponding route.
+The Apex brand icon is regenerated automatically on every `ios:sync` (which `ios:open` calls) — you never have to touch `Assets.xcassets/AppIcon.appiconset/`. If you want to regenerate it standalone, `npm run icons:ios`.
 
-### Testing ATT prompt
+After the first run on a real device or simulator, Xcode caches the icon aggressively. If the home-screen icon still looks stale after a build, run **Product → Clean Build Folder** in Xcode and rebuild.
 
-The sample app asks only when you tap **Request ATT prompt** on Settings. iOS shows the system dialog; your choice is persisted per-install.
+In Xcode:
 
-### Testing SKAN
+1. **Signing & Capabilities** → set your **Team** to your Apple Dev team
+2. The default Bundle Identifier is `inc.apex.outfitters`. **You must change this** to a bundle ID registered in YOUR Apple Dev team's portal.
+3. Plug in your iPhone, pick it as the destination, hit ▶ Run.
+4. On the iPhone: trust the developer cert via Settings → General → VPN & Device Management on first run.
 
-`updateConversionValue` fires automatically when you tap Buy on a product. In a TestFlight build (not Simulator), Apple fires the postback after the attribution window — typically 0-24h after install. You won't see it in Simulator; use TestFlight for the real flow.
+## Configure Apex (Pattern A)
 
-## Running in Android emulator
+The app ships unconfigured — no project key is baked in, and events stay local to the in-app event log until you wire up your workspace:
 
-Requires Android Studio and an Android emulator image.
+1. Sign up at https://apex.inc (or use an existing account)
+2. Create a new workspace (recommended) or use an existing one
+3. Open the dashboard → Settings → Snippet → copy your project key (`prj_...`)
+4. In the Apex Outfitters app: Account tab → Apex settings → paste your project key + your API URL
+5. Tap Save
 
-```bash
-npm run android:add     # one-time: creates android/ folder
-npm run android:open    # opens Android Studio
-```
+Events fired in the app now land in your Apex dashboard. Visit `/dashboard/debug/events?projectKey=<your-key>` to see the live event stream.
 
-Hit **Run** in Android Studio. The emulator boots, the sample app opens, and events flow through.
+## How to actually use this — the dashboard walkthrough
 
-### Testing Install Referrer
+The most useful doc in this repo is [`docs/dashboard-walkthrough.md`](./docs/dashboard-walkthrough.md). It maps every feature in the app to its dashboard URL — "tap this here, see this there" — and is the right starting point if you're not sure what Apex Outfitters is supposed to demonstrate.
 
-Real Play Install Referrer only arrives when the app is installed from a Play Store listing (at least Internal Test Track). The sample shows `(unavailable)` in Simulator / local sideload. Once you upload a signed build to Play Internal, an install triggered by a click on `play.google.com/store/apps/details?id=your.app&referrer=utm_source=meta...` yields the referrer string on first launch.
+A summary of where everything surfaces:
 
-### Testing deep links from the terminal
+| In the app | In the dashboard |
+|---|---|
+| Any event you fire | `/dashboard/debug/events` (live SSE feed) |
+| Sign up | `/dashboard/contacts` (new Contact, prior events stitched) |
+| Buy something | `/dashboard/mobile` (revenue, LTV, retention) |
+| Settings → Test partner referral | `/dashboard/partners` (after `npm run seed`) |
+| Apex Live → Deep links panel | `/dashboard/mobile/links` |
+| Apex Live → Intelligence panel | `/dashboard/audiences` |
+| Apex Live → In-app inbox | composed at `/dashboard/communications` |
 
-```bash
-adb shell am start -W -a android.intent.action.VIEW \
-  -d "https://yourproject.links.apex.inc/summer-launch" inc.apex.sample
-```
+The app itself surfaces this inside **Apex Live → "See it in your dashboard"** — each card opens the right URL with your project key pre-filled.
 
-## Project layout
+## What "Pattern A" means
+
+This app deliberately keeps Apex setup manual. We could auto-provision everything from a "Try Apex Outfitters" button in your dashboard (and we plan to — that's "Pattern C"), but going through the manual setup teaches you exactly how Apex integrates into a real app. Every paper cut you experience during setup is logged in `docs/dogfood-friction-log.md` so the future auto-provisioner eliminates it.
+
+## What's in the app today
+
+### Phase 1 — Brand system + design tokens + app shell ✅
+
+- Apex green primary palette with light/dark mode
+- Inter + JetBrains Mono typography
+- 4 bottom tabs: **Home / Shop / Account / Apex Live**
+- Splash screen
+- Settings → Apex (Pattern A onboarding)
+- Toast notifications with haptics
+- Design primitives: `Button`, `Card`, `Sheet`, `TextField`, `Badge`, `Toast`, `Skeleton`
+
+### Phase 2-10 — coming after the brand foundation
+
+Highlights from the roadmap:
+
+- **AO-P2**: 12-20 fictional products, real catalog, simulated checkout
+- **AO-P3**: Every native Apex event wired + Apex Live debug panel
+- **AO-P4**: Belief graph + predictive LTV visualization
+- **AO-P5 (FLAGSHIP)**: Partner referral end-to-end loop
+- **AO-P6**: Apex Outfitters Plus subscription tier
+- **AO-P9**: Live A/B experiment via `Apex.getVariant()`
+- **AO-P10**: In-app message inbox
+
+## Push notifications
+
+The Apex Capacitor plugin's push notifications are documented in the [plugin repo](https://github.com/apex-incorporated/capacitor-plugin#push-notifications-ios). When you enable push in Account → Settings, the plugin auto-registers the device token with your Apex project. Use the dashboard's Push Notifications setup wizard to upload your `.p8` and send a test push.
+
+## Source layout
 
 ```
 src/
-├── main.tsx                  # React + Router bootstrap
-├── App.tsx                   # Initialises Apex + wires the deep-link router
-├── apex.ts                   # Thin SDK wrapper + in-app log bus
-├── hooks/
-│   ├── useQueueStatus.ts     # Polls Apex.getQueueSize()
-│   ├── useVisitorId.ts       # Reads + overrides the visitor ID
-│   └── useDeepLinkRouter.ts  # Universal / App Links → React Router
+├── App.tsx              # Router + provider stack + splash
+├── apex.ts              # SDK wrapper + event log bus
+├── brand/               # Design tokens (colors, type, motion) + icon
 ├── components/
-│   ├── Layout.tsx            # Header + bottom tab bar
-│   ├── StatPill.tsx          # Reusable stat card
-│   └── EventLog.tsx          # Live tail of Apex calls
+│   ├── ui/              # Button, Card, Sheet, TextField, Badge, Toast, Skeleton
+│   └── layout/          # Layout, TabBar, Header, Splash
+├── hooks/               # useVisitorId, useDeepLinkRouter, useQueueStatus
+├── lib/
+│   └── apex-config.ts   # Pattern A project-key + API-URL config (localStorage-backed)
 └── screens/
     ├── HomeScreen.tsx
-    ├── ProductsScreen.tsx
-    ├── ProductDetailScreen.tsx
+    ├── ShopScreen.tsx
+    ├── AccountScreen.tsx
+    ├── ApexLiveScreen.tsx
     └── SettingsScreen.tsx
 ```
 
-## What's included — API checklist
+## License
 
-Every method on the [`ApexCapacitorPlugin`](https://github.com/apex-incorporated/capacitor-plugin/blob/main/src/definitions.ts) interface is demonstrated somewhere in the sample:
-
-- [x] `initialize` — `src/apex.ts`
-- [x] `requestTrackingAuthorization` — Settings
-- [x] `getTrackingStatus` — Settings
-- [x] `getAdvertisingId` — Settings
-- [x] `getInstallReferrer` — Settings
-- [x] `getVisitorId` — `useVisitorId` hook
-- [x] `setVisitorId` — Settings
-- [x] `updateConversionValue` — Product detail Buy
-- [x] `getInitialDeepLink` — `useDeepLinkRouter` hook
-- [x] `getDeviceInfo` — Settings
-- [x] `startSession` / `endSession` / `getCurrentSession` — Home
-- [x] `track` — every screen
-- [x] `getQueueSize` / `flushQueue` — Home
-- [x] `setTestMode` — Settings
-- [x] `addListener("deepLink")` — `useDeepLinkRouter` hook
-
-## Customising
-
-**Change the app identity** (bundle ID, display name, team ID) before shipping to TestFlight / Play Internal: edit `capacitor.config.ts` and `ios/App/App.xcworkspace` (in Xcode) or `android/app/build.gradle`.
-
-**Test your own deep link host.** By default the sample accepts any URL and routes by pathname. When you set up a real Apex Link subdomain (e.g. `yourproject.links.apex.inc`), register it as an Associated Domain in Xcode and as an Intent Filter in `AndroidManifest.xml` — Apex's [getting-started docs](https://apex.inc/docs/mobile/getting-started) walk you through both.
-
-## Not in this sample (intentionally)
-
-- **Real authentication** — there's one "override visitor ID" input, nothing more. In your real app you'd wire `Apex.setVisitorId(userId)` into your login handler.
-- **Real API calls for the product catalog** — hard-coded so the sample runs offline.
-- **Payment processing** — the Buy button simulates a purchase so SKAN + revenue events fire, but no card is charged.
-- **State management libraries** — `useState` + `useContext` is enough for three screens.
+Apache-2.0. Same as Apex's plugin + SDK. Fork freely.
 
 ## Getting help
 
-- Docs: https://apex.inc/docs/mobile/getting-started
-- Plugin source: https://github.com/apex-incorporated/capacitor-plugin
-- Dashboard / debug stream: `/dashboard/debug/events` in your Apex install
-
-## License
-
-Apache-2.0 — same as the plugin and SDK. Fork freely.
+- Apex docs: https://apex.inc/docs
+- Capacitor plugin: https://github.com/apex-incorporated/capacitor-plugin
+- Issues: https://github.com/apex-incorporated/capacitor-sample-app/issues

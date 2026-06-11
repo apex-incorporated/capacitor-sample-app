@@ -10,6 +10,13 @@ dist/
 ios/
 android/
 
+# Exception: track the customized AppDelegate.swift. We modify it to
+# disable WKWebView's competing gesture recognizers (the documented
+# iOS-17+ "Gesture: System gesture gate timed out" bug). Without
+# tracking it, every contributor would have to re-apply the fix by
+# hand after running `npm run ios:add`.
+!ios/App/App/AppDelegate.swift
+
 # Build caches
 .vite/
 .turbo/
